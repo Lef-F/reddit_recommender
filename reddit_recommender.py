@@ -19,7 +19,7 @@ class RedditClient:
 		self.reddit = praw.Reddit(
 			client_id=os.environ.get('CLIENT_ID'),
 			client_secret=os.environ.get('CLIENT_SECRET'),
-			user_agent='Reddit Recommender (by /u/faaaaaart)'
+			user_agent=os.environ.get('USER_AGENT')
 			)
 
 	def _reddit_data(self):
