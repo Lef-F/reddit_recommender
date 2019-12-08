@@ -1,0 +1,6 @@
+# skip personal files
+*.json
+*.ipynb
+*.txt
+*.pyc
+secrets.py
