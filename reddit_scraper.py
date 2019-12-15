@@ -1,5 +1,5 @@
 try:
-	import secrets
+	import secrets.secrets
 except ModuleNotFoundError:
 	print('WARNING! No secrets.py file found, assuming enviroment variables are already loaded!')
 
@@ -71,8 +71,8 @@ def external_url_scraper(url: str):
 
 			output = [ text for text in soup.find_all(text=True) if text != '\n']
 		return '\n'.join(output)
-	except requests.exceptions.MissingSchema:
-		# In cases where a badly-formed URL is provided skip scraping
+	except (requests.exceptions.MissingSchema, requests.exceptions.SSLError):
+		# In cases where a badly-formed URL is provided or the website got an SSL error skip scraping
 		return ''
 
 def upload_to_bq(data):
@@ -132,14 +132,24 @@ def main(limit):
 		None
 	"""
 	if type(limit) != int:
-		raise ValueError('Limit must be an integer!')
+		try:
+			limit = int(limit)
+		except ValueError:
+			raise ValueError('Limit must be an integer!')
+	
+	print('Now working to fetch the latest', limit, 
+		'new posts from multireddit', os.environ['MULTI'], 
+		'and user', os.environ['REDDIT_USER'])
 
 	client = RedditClient()
 	multi = client.reddit.multireddit(os.environ['REDDIT_USER'], os.environ['MULTI'])
 
 	record = list()
 
-	for thread in multi.new(limit=limit):
+	for ind, thread in enumerate(multi.new(limit=limit)):
+		if not ind % 10:
+			print('Scraped', ind, 'out of', limit)
+
 		submission_data = client._reddit_data()
 		for attr in submission_data.keys():
 			submission_data[attr] = getattr(thread, attr)
@@ -165,11 +175,12 @@ def main(limit):
 
 		record.append(submission_data)
 
+	print('All data collected. Now processing BigQuery load.')
 	df = pd.DataFrame(record)
-	df.to_json('./reddit_post_dump.json', lines=True, orient='records')
-	with open('./reddit_post_dump.json', 'rb') as f:
+	df.to_json('./dumps/reddit_post_dump.json', lines=True, orient='records')
+	with open('./dumps/reddit_post_dump.json', 'rb') as f:
 		upload_to_bq(f)
-	sys.exit(1)
+	print('Data uploaded successfully to', os.environ['TABLE_PATH'])
 
 if __name__ == "__main__":
 	args = sys.argv
