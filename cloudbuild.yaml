@@ -1,12 +1,12 @@
 steps:
     # build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/[SERVICE-NAME]', '.']
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/reddit-recommender', '.']
     # push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/[SERVICE-NAME]']
+    args: ['push', 'gcr.io/$PROJECT_ID/reddit-recommender']
     # Deploy container image to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
-    args: ['beta', 'run', 'deploy', '[SERVICE-NAME]', '--image', 'gcr.io/$PROJECT_ID/[SERVICE-NAME]', '--region', '[REGION]','--platform', '[PLATFORM]', '--quiet']
+    args: ['beta', 'run', 'deploy', 'reddit-recommender', '--image', 'gcr.io/$PROJECT_ID/reddit-recommender', '--region', 'europe-west1','--platform', 'managed', '--quiet']
   images:
-  - gcr.io/$PROJECT_ID/[SERVICE-NAME]
+  - gcr.io/$PROJECT_ID/reddit-recommender
