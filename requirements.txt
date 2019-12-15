@@ -3,3 +3,4 @@ pandas==0.25.1
 requests==2.22.0
 beautifulsoup4==4.8.1
 protobuf==3.11.1
+google-cloud-bigquery==1.22.0
