@@ -121,7 +121,7 @@ def upload_to_bq(data):
 		logging.error('Failed to create load job: %s' % (e))
 
 
-def main(limit=10):
+def main(limit):
 	"""Reddit scraper.
 	Fetches the data from X = `limit` latest reddit posts, their comments and possible external text
 	and pushes it to a BigQuery table.
@@ -131,6 +131,9 @@ def main(limit=10):
 	Returns:
 		None
 	"""
+	if type(limit) != int:
+		raise ValueError('Limit must be an integer!')
+
 	client = RedditClient()
 	multi = client.reddit.multireddit(os.environ['REDDIT_USER'], os.environ['MULTI'])
 
@@ -169,4 +172,16 @@ def main(limit=10):
 	sys.exit(1)
 
 if __name__ == "__main__":
-	main()
+	args = sys.argv
+	if len(args) > 2:
+		logging.error('Too many arguments! Please specify number of new posts to fetch.')
+		sys.exit(1)
+	elif len(args) == 2:
+		main(args[1])
+		sys.exit(0)
+	else:
+		print('Welcome to the reddit scraper!')
+		print('This script takes the number of new reddit posts as input.')
+		print('e.g. python3 reddit_scraper.py 100')
+		sys.exit(0)
+	
