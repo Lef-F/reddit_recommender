@@ -1,5 +1,5 @@
-# skip personal files
-*.json
+# skip local files
+*_dump.json
 *.ipynb
 *.txt
 *.pyc
