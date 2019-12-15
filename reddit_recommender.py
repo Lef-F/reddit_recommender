@@ -7,10 +7,11 @@ import os
 import sys
 import praw
 import json
+import logging
 import requests
-from flask import jsonify
+import pandas as pd
 from bs4 import BeautifulSoup
-
+from google.cloud import bigquery
 
 class RedditClient:
 	"""Class to produce connected instance of Reddit.
@@ -23,7 +24,7 @@ class RedditClient:
 			)
 
 	def _reddit_data(self):
-		"""Definition of the attributes specific to the PRAW Python library which 
+		"""Definition of the attributes specific to the PRAW Python library which
 		are to be extracted from a praw.models.Submission instance.
 		"""
 		return {
@@ -41,7 +42,7 @@ class RedditClient:
 				'is_self': 'if the submission is a self-post or a URL'
 			}
 	def _custom_data(self):
-		"""Definition of the custom data that are to be extracted. 
+		"""Definition of the custom data that are to be extracted.
 		"""
 		return {
 			'comments': 'list of comments in the reddit thread',
@@ -57,38 +58,91 @@ def external_url_scraper(url: str):
 		A list with all the available text from the webpage.
 	"""
 	output = list()
-	response = requests.get(url)
+	try:
+		response = requests.get(url)
 
-	# Skip non-HTML content
-	if 'text/html' in response.headers['content-type']:
-		soup = BeautifulSoup(response.content, 'html.parser')
+		# Skip non-HTML content
+		if 'text/html' in response.headers['content-type']:
+			soup = BeautifulSoup(response.content, 'html.parser')
 
-		# Remove all script and style elements
-		for script in soup(['script', 'style']):
-			script.decompose()
-		
-		output = [ text for text in soup.find_all(text=True) if text != '\n']
-	return output
+			# Remove all script and style elements
+			for script in soup(['script', 'style']):
+				script.decompose()
+
+			output = [ text for text in soup.find_all(text=True) if text != '\n']
+		return '\n'.join(output)
+	except requests.exceptions.MissingSchema:
+		# In cases where a badly-formed URL is provided skip scraping
+		return ''
+
+def upload_to_bq(data):
+	# Create bigquery client
+	client = bigquery.Client()
+
+	# Get dataset reference
+	datasetname = os.environ['DATASET']
+	dataset_ref = client.dataset(datasetname)
+
+	# Check if dataset exists, otherwise create
+	try:
+		client.get_dataset(dataset_ref)
+	except Exception as e:
+		logging.warn(e)
+		logging.warn('Creating dataset: %s' % (datasetname))
+		client.create_dataset(dataset_ref)
+
+	# create a bigquery load job config
+	job_config = bigquery.LoadJobConfig()
+
+	schema = os.environ['BQ_SCHEMA']
+	if schema != '':
+		with open(schema, 'r') as f:
+			job_config.schema = json.load(f)
+	else:
+		print('No schema file found for env var BQ_SCHEMA. \nContinuing with schema autodetection on.')
+		job_config.autodetect = True
+
+	job_config.create_disposition = 'CREATE_IF_NEEDED'
+	job_config.source_format = 'NEWLINE_DELIMITED_JSON'
+	job_config.write_disposition = 'WRITE_TRUNCATE'
+
+	# create a bigquery load job
+	try:
+		load_job = client.load_table_from_file(
+			data,
+			os.environ['TABLE_PATH'],
+			job_config=job_config,
+		)
+		print('Load job: %s [%s]' % (
+			load_job.job_id,
+			os.environ['TABLE_PATH']
+		))
+	except Exception as e:
+		logging.error('Failed to create load job: %s' % (e))
 
 
-def main(request=None):
-	"""Responds to any HTTP request.
+def main(limit=10):
+	"""Reddit scraper.
+	Fetches the data from X = `limit` latest reddit posts, their comments and possible external text
+	and pushes it to a BigQuery table.
+
 	Args:
-		request (flask.Request): HTTP request object.
+		limit (int): Number of new posts to scrape.
 	Returns:
-		The response text or any set of values that can be turned into a
-		Response object using
-		`make_response <http://flask.pocoo.org/docs/1.0/api/#flask.Flask.make_response>`.
+		None
 	"""
 	client = RedditClient()
-	multi = client.reddit.multireddit('faaaaaart', 'data')
+	multi = client.reddit.multireddit(os.environ['REDDIT_USER'], os.environ['MULTI'])
 
 	record = list()
 
-	for thread in multi.new(limit=30):
+	for thread in multi.new(limit=limit):
 		submission_data = client._reddit_data()
 		for attr in submission_data.keys():
 			submission_data[attr] = getattr(thread, attr)
+
+		# TODO: Figure out how to fix this elegantly
+		submission_data['created_utc'] = int(submission_data['created_utc'])
 
 		submission_data['author'] = submission_data['author'].name
 		submission_data['subreddit'] = submission_data['subreddit'].display_name
@@ -96,7 +150,7 @@ def main(request=None):
 		submission_data.update(client._custom_data())
 
 		# Replace Comment objects with their text body, if there is any
-		thread.comments.replace_more()
+		thread.comments.replace_more(limit=None)
 		submission_data['comments'] = list()
 		for comment in thread.comments.list():
 			submission_data['comments'].append(getattr(comment, 'body'))
@@ -105,15 +159,13 @@ def main(request=None):
 			submission_data['external_text'] = external_url_scraper(submission_data['url'])
 		else:
 			submission_data['external_text'] = ''
-		
-		record.append(submission_data)
-	json_dump = json.dumps(record)
 
-	try:
-		return jsonify(record)
-	except RuntimeError:
-		with open('reddit_post_dump.json', 'w+') as f:
-			f.write(json_dump)
+		record.append(submission_data)
+
+	df = pd.DataFrame(record)
+	df.to_json('./reddit_post_dump.json', lines=True, orient='records')
+	with open('./reddit_post_dump.json', 'rb') as f:
+		upload_to_bq(f)
 	sys.exit(1)
 
 if __name__ == "__main__":
