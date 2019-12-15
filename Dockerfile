@@ -2,8 +2,10 @@ FROM python:3.7-slim
 
 ADD . reddit_recommender
 
-RUN mkdir ./reddit_recommender/dumps
+WORKDIR /reddit_recommender
 
-RUN python3 -m pip install -r ./reddit_recommender/requirements.txt
+RUN mkdir ./dumps
 
-ENTRYPOINT [ "python3", "-u", "./reddit_recommender/reddit_scraper.py" ]
+RUN python3 -m pip install -r ./requirements.txt
+
+ENTRYPOINT [ "python3", "-u", "./reddit_scraper.py" ]
