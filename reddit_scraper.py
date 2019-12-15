@@ -104,7 +104,7 @@ def upload_to_bq(data):
 
 	job_config.create_disposition = 'CREATE_IF_NEEDED'
 	job_config.source_format = 'NEWLINE_DELIMITED_JSON'
-	job_config.write_disposition = 'WRITE_TRUNCATE'
+	job_config.write_disposition = 'WRITE_APPEND'
 
 	# create a bigquery load job
 	try:
