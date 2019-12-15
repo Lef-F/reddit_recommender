@@ -1,6 +1,6 @@
 # skip local files
 .vscode
-*_dump.json
+dumps
 *.ipynb
 .ipynb_checkpoints
 __pycache__
