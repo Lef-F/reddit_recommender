@@ -8,5 +8,5 @@ steps:
     # Deploy container image to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
     args: ['beta', 'run', 'deploy', 'reddit-recommender', '--image', 'gcr.io/$PROJECT_ID/reddit-recommender', '--region', 'europe-west1','--platform', 'managed', '--quiet']
-  images:
+images:
   - gcr.io/$PROJECT_ID/reddit-recommender
