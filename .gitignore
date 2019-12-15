@@ -4,4 +4,4 @@
 *.ipynb
 .ipynb_checkpoints
 __pycache__
-secrets.py
+secrets
