@@ -1,0 +1,6 @@
+# ignore local files and folders
+dumps
+.vscode
+.ipynb_checkpoints
+__pycache__
+*.ipynb
