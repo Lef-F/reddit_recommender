@@ -1,0 +1,72 @@
+[
+    {
+        "name": "id",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "author",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "created_utc",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "num_comments",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "score",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "subreddit",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "title",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "upvote_ratio",
+        "type": "FLOAT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "permalink",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "url",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "selftext",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "is_self",
+        "type": "BOOL",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "comments",
+        "type": "STRING",
+        "mode": "REPEATED"
+    },
+    {
+        "name": "external_text",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    }
+]
