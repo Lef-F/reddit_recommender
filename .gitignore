@@ -2,6 +2,6 @@
 .vscode
 *_dump.json
 *.ipynb
-*.txt
+.ipynb_checkpoints
 *.pyc
 secrets.py
