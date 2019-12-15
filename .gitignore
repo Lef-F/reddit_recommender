@@ -3,5 +3,5 @@
 *_dump.json
 *.ipynb
 .ipynb_checkpoints
-*.pyc
+__pycache__
 secrets.py
